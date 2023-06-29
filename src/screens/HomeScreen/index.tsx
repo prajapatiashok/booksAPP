@@ -1,5 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {FlatList, View, StyleSheet, TouchableOpacity} from 'react-native';
+import {
+  FlatList,
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  RefreshControl,
+} from 'react-native';
 import booksAPI from '../../api/booksAPI';
 import Text from '../../components/common/Text/Text';
 import ImageComponent from '../../components/common/Image/Image';
@@ -45,15 +51,22 @@ const HomeScreen: React.FC<Props> = ({navigation}): JSX.Element => {
   const [books, setBooks] = useState<IBook[]>([]);
   const [lastIndex, setLastIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState<boolean>(true);
 
   useEffect(() => {
-    apiCall();
+    if (refreshing) {
+      apiCall();
+      setRefreshing(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastIndex]);
+  }, [lastIndex, refreshing]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+  };
 
   const apiCall = async () => {
     if (isLoading) return;
-
     setIsLoading(true);
     try {
       const response = await booksAPI.get('books');
@@ -74,10 +87,10 @@ const HomeScreen: React.FC<Props> = ({navigation}): JSX.Element => {
     return (
       <TouchableOpacity
         onPress={onPressCard}
-        style={{width: windowWidth / 1.98, height: windowHeight / 2.4}}>
+        style={{width: windowWidth / 1.98, height: windowHeight / 2.3}}>
         <ImageComponent source={{uri: item.imageUrl}} style={styles.image} />
         <View style={styles.infoWrapper}>
-          <Text>{item.title}</Text>
+          <Text style={styles.title}>{item.title}</Text>
           <View style={styles.flexAndJustifyContent}>
             <Text style={styles.textStyle}>{item.percentage}%</Text>
             <Text style={styles.costStyle}>{item.cost}</Text>
@@ -96,6 +109,9 @@ const HomeScreen: React.FC<Props> = ({navigation}): JSX.Element => {
         numColumns={2}
         renderItem={renderItem}
         keyExtractor={item => item.id.toString()}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         onEndReached={apiCall}
         onEndReachedThreshold={0.4}
         style={styles.container}
@@ -110,6 +126,11 @@ const styles = StyleSheet.create({
   },
   justifyContent: {
     justifyContent: 'space-between',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'black',
   },
   image: {
     width: 205,
